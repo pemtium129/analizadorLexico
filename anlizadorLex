@@ -1,0 +1,63 @@
+%{
+int COM=0;
+%}
+
+%%
+"/*" {COM=1;}
+[#][a-zA-Z0-9]+ {if(!COM) printf("\n %s Identificador",yytext);}
+
+"@while" |
+"@else" |
+"@if" {printf("\n\t%s es una Palabra Reservada",yytext);}
+
+\+ |
+\- |
+\* |
+\/ |
+\%  {if(!COM) printf("\n\t %s es un Operador Aritmetico",yytext);}
+
+\<= |
+\>= |
+\< |
+== |
+\!= |  
+\> {if(!COM) printf("\n\t %s es un Operador Relacional",yytext);}
+
+= {if(!COM)printf("\n\t %s es un Operador de Asignacion",yytext);}
+
+\&& |
+\|| |
+\! {if(!COM)printf("\n\t %s es un Operador Logico",yytext);}
+
+\{ |
+\} |
+\( |
+\) |
+\; |
+\, {if(!COM)printf("\n\t %s es un Simbolo de Puntuacion",yytext);}
+
+[0-9]+ {if(!COM) printf("\n %s en un Entero ",yytext);}
+
+[0-9]+ {if(!COM) printf("\n %s en un Decimal ",yytext);}
+\)(\:)? {if(!COM)printf("\n\t");ECHO;printf("\n");}
+\( ECHO;
+
+%%
+int main(int argc, char **argv)
+{
+FILE *file;
+file=fopen("var.c","r");
+if(!file)
+{
+printf("Error");
+exit(0);
+}
+yyin=file;
+yylex();
+printf("\n");
+return(0);
+}
+int yywrap()
+{
+return(1);
+}
