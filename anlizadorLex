@@ -1,63 +1,125 @@
 %{
-int COM=0;
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+typedef struct _token{
+    int clase;
+    char valor[32];
+    int line;
+} token;
+
+token TOKEN;
+
+enum clase {ID=1, RESERVADA, ARITMETICO, RELACIONAL, ASIGNACION, LOGICO, PUNTUACION, ENTERO, DECIMAL};
+
+void error(char *s);
 %}
 
-%%
-"/*" {COM=1;}
-[#][a-zA-Z0-9]+ {if(!COM) printf("\n %s Identificador",yytext);}
+%option yylineno
 
-"@while" |
-"@else" |
-"@if" {printf("\n\t%s es una Palabra Reservada",yytext);}
-
-\+ |
-\- |
-\* |
-\/ |
-\%  {if(!COM) printf("\n\t %s es un Operador Aritmetico",yytext);}
-
-\<= |
-\>= |
-\< |
-== |
-\!= |  
-\> {if(!COM) printf("\n\t %s es un Operador Relacional",yytext);}
-
-= {if(!COM)printf("\n\t %s es un Operador de Asignacion",yytext);}
-
-\&& |
-\|| |
-\! {if(!COM)printf("\n\t %s es un Operador Logico",yytext);}
-
-\{ |
-\} |
-\( |
-\) |
-\; |
-\, {if(!COM)printf("\n\t %s es un Simbolo de Puntuacion",yytext);}
-
-[0-9]+ {if(!COM) printf("\n %s en un Entero ",yytext);}
-
-[0-9]+ {if(!COM) printf("\n %s en un Decimal ",yytext);}
-\)(\:)? {if(!COM)printf("\n\t");ECHO;printf("\n");}
-\( ECHO;
+letra [a-zA-Z]
+letra_ {letra}|_
+digito [0-9]
+id \#({letra_}|{digito})+
+reservadas "@if"|"@else"|"@while"
+aritmetico [\+\-\*\/\%] 
+relacional \<=|\>=|\<|==|\!=|\>
+asignacion \=
+logico [\&\|\!]
+operador {aritmetico}|{relacional}|{asignacion}|{logico}
+entero ({digito})+
+real {digito}*"."{digito}+|{digito}+"."{digito}*
+numero {entero}|{real}
+puntuacion [\{\}\(\)\,\;]
+espacios [ \t\n\r]
+comentario "/*"({digito}|{letra}|{operador}|{puntuacion}|{espacios})*"*/"
 
 %%
-int main(int argc, char **argv)
-{
-FILE *file;
-file=fopen("var.c","r");
-if(!file)
-{
-printf("Error");
-exit(0);
+{id}    { 
+            TOKEN.clase = ID;
+            strcpy(TOKEN.valor, yytext);
+            TOKEN.line = yylineno;
+            return ID;
+        }
+{reservadas}    { 
+            TOKEN.clase = RESERVADA;
+            strcpy(TOKEN.valor, yytext);
+            TOKEN.line = yylineno;
+            return RESERVADA;
+        }
+{aritmetico}    { 
+            TOKEN.clase = ARITMETICO;
+            strcpy(TOKEN.valor, yytext);
+            TOKEN.line = yylineno;
+            return ARITMETICO;
+        }
+{relacional}    { 
+            TOKEN.clase = RELACIONAL;
+            strcpy(TOKEN.valor, yytext);
+            TOKEN.line = yylineno;
+            return RELACIONAL;
+        }
+{asignacion}    { 
+            TOKEN.clase = ASIGNACION;
+            strcpy(TOKEN.valor, yytext);
+            TOKEN.line = yylineno;
+            return ASIGNACION;
+        }
+{logico}    { 
+            TOKEN.clase = LOGICO;
+            strcpy(TOKEN.valor, yytext);
+            TOKEN.line = yylineno;
+            return LOGICO;
+        }
+{puntuacion}    { 
+            TOKEN.clase = PUNTUACION;
+            strcpy(TOKEN.valor, yytext);
+            TOKEN.line = yylineno;
+            return PUNTUACION;
+        }
+{entero}    { 
+                TOKEN.clase = ENTERO;
+                strcpy(TOKEN.valor, yytext);
+                TOKEN.line = yylineno;
+                return ENTERO;
+            }
+{real}  { 
+                TOKEN.clase = DECIMAL;
+                strcpy(TOKEN.valor, yytext);
+                TOKEN.line = yylineno;
+                return DECIMAL;
+        }
+{espacios} {/* Ignora los espacios en blanco*/}
+{comentario} {/* Ignora los comentarios*/}
+
+.   {error(yytext);}
+
+%%
+int yywrap(){
+    return 1;
 }
-yyin=file;
-yylex();
-printf("\n");
-return(0);
+
+void error(char *s){
+    printf("Error léxico: %s, en la línea %d\n",s,yylineno);
 }
-int yywrap()
-{
-return(1);
+
+int main(int argc, char **argv){
+    FILE *f;
+    if(argc<2){
+        printf("Falta archivo\n");
+        exit(-1);
+    }
+    f = fopen(argv[1],"r");
+    if(!f){
+        printf("No se puede abrir el archivo\n");
+        exit(-1);
+    }
+    yyin = f;
+    int tok = yylex();
+    while(tok != 0){
+        printf("%d\n",tok);
+        tok = yylex();
+    }    
+    return 0;
 }
